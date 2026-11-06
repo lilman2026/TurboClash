@@ -33,12 +33,11 @@ canvas#gl{display:block;position:fixed;inset:0;width:100%;height:100%}
 @keyframes fin{from{transform:translateX(30px);opacity:0}}
 #replayTag{position:absolute;top:86px;left:50%;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
 #hud.replaying #replayTag{display:flex}
-#hud.replaying #boostWrap,#hud.replaying #camTag{display:none}
+#hud.replaying #boostWrap{display:none}
 #replayBadge{font-weight:900;font-style:italic;font-size:30px;letter-spacing:6px;padding:6px 26px;border-radius:4px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(0,0,0,.45)}
 #replayBadge i{width:12px;height:12px;border-radius:50%;background:#fff;animation:blink 1s steps(2,start) infinite}
 @keyframes blink{to{visibility:hidden}}
 #replayWho{font-weight:800;font-size:16px;letter-spacing:2px;text-shadow:0 2px 8px #000}
-#camTag{position:absolute;left:18px;top:18px;font-weight:800;font-size:13px;letter-spacing:2px;color:#cfe3ff;background:#0a0f1dbb;padding:5px 12px;border-radius:4px}
 
 .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(5,8,20,.25),rgba(5,8,20,.8))}
 .panel{background:linear-gradient(160deg,#121a33f2,#0a0f1ef2);border:1px solid #ffffff1c;border-radius:14px;padding:34px 44px;min-width:520px;max-width:92vw;box-shadow:0 30px 80px rgba(0,0,0,.6);text-align:center}
@@ -230,7 +229,6 @@ html.pv-splash-active,body.pv-splash-active {
   <div id="center"></div>
   <div id="sub"></div>
   <div id="boostWrap"><canvas id="boostC" width="340" height="340"></canvas></div>
-  <div id="camTag">BALL CAM: ON &nbsp;[C]</div>
   <div id="replayTag"><div id="replayBadge"><i></i>REPLAY</div><div id="replayWho"></div></div>
 </div>
 
@@ -2291,15 +2289,13 @@ function botThink(c, dt) {
     }
 }
 const keys = {};
-let mouseJump = false, ballCam = true, padPrev = {};
+let mouseJump = false, padPrev = {};
 addEventListener('keydown', e => {
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code))
         e.preventDefault();
     keys[e.code] = true;
     if (e.repeat)
         return;
-    if (e.code === 'KeyC')
-        toggleBallCam();
     if (e.code === 'Escape' || e.code === 'KeyP')
         togglePause();
 });
@@ -2311,8 +2307,6 @@ $('gl').addEventListener('mousedown', e => { if (e.button === 2)
 addEventListener('mouseup', e => { if (e.button === 2)
     mouseJump = false; });
 addEventListener('contextmenu', e => e.preventDefault());
-function toggleBallCam() { if (!player)
-    return; ballCam = !ballCam; $('camTag').innerHTML = `BALL CAM: ${ballCam ? 'ON' : 'OFF'} &nbsp;[C]`; }
 function readPlayer(c) {
     const k = keys, inp = c.input;
     const f = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
@@ -2341,11 +2335,9 @@ function readPlayer(c) {
         inp.jump = inp.jump || b(0);
         inp.boost = inp.boost || b(1);
         inp.slide = inp.slide || b(2);
-        if (b(3) && !padPrev.y)
-            toggleBallCam();
         if (b(9) && !padPrev.st)
             togglePause();
-        padPrev = { y: b(3), st: b(9) };
+        padPrev = { st: b(9) };
     }
 }
 const sfx = {
@@ -2943,31 +2935,18 @@ function render(dt) {
     }
     else {
         const c = player;
-        if (ballCam && ball.active) {
-            _a.set(c.pos.x - ball.pos.x, 0, c.pos.z - ball.pos.z);
-            if (_a.lengthSq() < 4)
-                _a.set(-Math.sin(c.yaw), 0, -Math.cos(c.yaw));
+        if (c.onGround)
+            _a.copy(c.fwd);
+        else
+            forwardOf(c, _a);
+        _a.y = 0;
+        if (_a.lengthSq() > .04) {
             _a.normalize();
-            camPosT.copy(c.pos).addScaledVector(_a, 13);
-            camPosT.y = c.pos.y + 4.8;
-            camLookT.copy(ball.pos);
-            camLookT.y = Math.min(ball.pos.y, c.pos.y + 16);
-            camLookT.lerp(c.pos, .25);
+            camDirX = _a.x;
+            camDirZ = _a.z;
         }
-        else {
-            if (c.onGround)
-                _a.copy(c.fwd);
-            else
-                forwardOf(c, _a);
-            _a.y = 0;
-            if (_a.lengthSq() > .04) {
-                _a.normalize();
-                camDirX = _a.x;
-                camDirZ = _a.z;
-            }
-            camPosT.set(c.pos.x - camDirX * 13, c.pos.y + 4.8, c.pos.z - camDirZ * 13);
-            camLookT.set(c.pos.x + camDirX * 6, c.pos.y + 1.6, c.pos.z + camDirZ * 6);
-        }
+        camPosT.set(c.pos.x - camDirX * 13, c.pos.y + 4.8, c.pos.z - camDirZ * 13);
+        camLookT.set(c.pos.x + camDirX * 6, c.pos.y + 1.6, c.pos.z + camDirZ * 6);
         for (let k = 0; k < 2; k++) {
             const dc = arenaD(camPosT.x, camPosT.y, camPosT.z);
             if (dc < 2) {
