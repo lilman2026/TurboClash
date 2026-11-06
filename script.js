@@ -1,4 +1,11 @@
-import * as THREE from 'three';
+(async () => {
+  try {
+    let THREE;
+    try {
+      THREE = await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+    } catch (_) {
+      THREE = await import('https://unpkg.com/three@0.160.0/build/three.module.js');
+    }
 await new Promise(r => requestAnimationFrame(() => setTimeout(r, 30)));
 const V3 = THREE.Vector3, Q4 = THREE.Quaternion;
 const $ = id => document.getElementById(id);
@@ -2932,3 +2939,17 @@ window.NITRO = {
     step: (s) => { for (let i = 0; i < s * 60; i++)
         update(1 / 60); },
 };
+
+
+  } catch (err) {
+    console.error('TurboClash startup failed:', err);
+    const box = document.getElementById('loading');
+    if (box) {
+      box.style.fontStyle = 'normal';
+      box.style.letterSpacing = 'normal';
+      box.style.padding = '24px';
+      box.style.textAlign = 'center';
+      box.innerHTML = '<div style="font:800 23px system-ui,Arial;color:#fff">TURBOCLASH</div><div style="font:600 19px system-ui,Arial;color:#ff8b8b">Game could not start</div><div style="font:400 14px system-ui,Arial;color:#d8e4ff;max-width:520px;line-height:1.5">Check your internet connection and make sure your browser supports WebGL. If you downloaded a ZIP, extract it first. You can also open the game from your GitHub Pages site.</div>';
+    }
+  }
+})();
