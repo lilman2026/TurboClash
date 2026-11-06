@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TurboClash</title>
+<link rel="stylesheet" href="style.css">
+
+
+
+</head>
+<body>
+<div id="playvoraSplash">
+  <audio id="kwSplashNoise" preload="auto" autoplay playsinline src="assets/playvora-splash.mp3"></audio>
+
+  <div class="nsInner">
+    <div class="nsTxt">Created by Play<span class="vora">vora</span></div>
+    <img class="playvoraLogo" src="assets/playvora-logo.png" alt="Playvora logo">
+  </div>
+</div>
+<script src="splash.js"></script>
+<canvas id="gl"></canvas>
+<div id="vignette"></div>
+
+<div id="hud" class="hidden">
+  <div id="score"><div class="t b" id="sB">0</div><div id="clock">5:00</div><div class="t o" id="sO">0</div></div>
+  <div id="feed"></div>
+  <div id="center"></div>
+  <div id="sub"></div>
+  <div id="boostWrap"><canvas id="boostC" width="340" height="340"></canvas></div>
+  <div id="camTag">BALL CAM: ON &nbsp;[C]</div>
+  <div id="replayTag"><div id="replayBadge"><i></i>REPLAY</div><div id="replayWho"></div></div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="panel">
+    <h1><span class="tb">TURBO</span><span class="tc">CLASH</span></h1>
+    <div class="opt"><label>MODE</label><div class="seg" data-key="mode"><button data-v="1" class="on">1 v 1</button><button data-v="2">2 v 2</button><button data-v="3">3 v 3</button></div></div>
+    <div class="opt"><label>BOTS</label><div class="seg" data-key="diff"><button data-v="0">ROOKIE</button><button data-v="1" class="on">PRO</button><button data-v="2">ALL-STAR</button></div></div>
+    <div class="opt"><label>MATCH</label><div class="seg" data-key="len"><button data-v="180">3 MIN</button><button data-v="300" class="on">5 MIN</button><button data-v="600">10 MIN</button></div></div>
+    <button class="big" id="playBtn">PLAY</button>
+
+
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <div class="panel">
+    <h1>PAUSED</h1>
+    <div class="row"><button class="btn" id="resumeBtn">RESUME</button><button class="btn" id="restartBtn">RESTART</button><button class="btn" id="quitBtn">QUIT TO MENU</button></div>
+  </div>
+</div>
+
+<div id="end" class="overlay hidden">
+  <div class="panel">
+    <div id="result">VICTORY</div>
+    <div id="finalScore"></div>
+    <table id="stats"></table>
+    <div class="row"><button class="btn" id="againBtn">REMATCH</button><button class="btn" id="menuBtn">MAIN MENU</button></div>
+  </div>
+</div>
+
+<div id="loading"><div>TURBOCLASH</div><div class="bar"><i></i></div></div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module" src="script.js"></script>
+</body>
+</html>
