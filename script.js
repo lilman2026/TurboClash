@@ -2024,15 +2024,13 @@ function botThink(c, dt) {
     }
 }
 const keys = {};
-let mouseJump = false, ballCam = true, padPrev = {};
+let mouseJump = false, padPrev = {};
 addEventListener('keydown', e => {
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code))
         e.preventDefault();
     keys[e.code] = true;
     if (e.repeat)
         return;
-    if (e.code === 'KeyC')
-        toggleBallCam();
     if (e.code === 'Escape' || e.code === 'KeyP')
         togglePause();
 });
@@ -2044,8 +2042,6 @@ $('gl').addEventListener('mousedown', e => { if (e.button === 2)
 addEventListener('mouseup', e => { if (e.button === 2)
     mouseJump = false; });
 addEventListener('contextmenu', e => e.preventDefault());
-function toggleBallCam() { if (!player)
-    return; ballCam = !ballCam; $('camTag').innerHTML = `BALL CAM: ${ballCam ? 'ON' : 'OFF'} &nbsp;[C]`; }
 function readPlayer(c) {
     const k = keys, inp = c.input;
     const f = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
@@ -2074,11 +2070,9 @@ function readPlayer(c) {
         inp.jump = inp.jump || b(0);
         inp.boost = inp.boost || b(1);
         inp.slide = inp.slide || b(2);
-        if (b(3) && !padPrev.y)
-            toggleBallCam();
         if (b(9) && !padPrev.st)
             togglePause();
-        padPrev = { y: b(3), st: b(9) };
+        padPrev = { st: b(9) };
     }
 }
 const sfx = {
@@ -2676,31 +2670,18 @@ function render(dt) {
     }
     else {
         const c = player;
-        if (ballCam && ball.active) {
-            _a.set(c.pos.x - ball.pos.x, 0, c.pos.z - ball.pos.z);
-            if (_a.lengthSq() < 4)
-                _a.set(-Math.sin(c.yaw), 0, -Math.cos(c.yaw));
+        if (c.onGround)
+            _a.copy(c.fwd);
+        else
+            forwardOf(c, _a);
+        _a.y = 0;
+        if (_a.lengthSq() > .04) {
             _a.normalize();
-            camPosT.copy(c.pos).addScaledVector(_a, 13);
-            camPosT.y = c.pos.y + 4.8;
-            camLookT.copy(ball.pos);
-            camLookT.y = Math.min(ball.pos.y, c.pos.y + 16);
-            camLookT.lerp(c.pos, .25);
+            camDirX = _a.x;
+            camDirZ = _a.z;
         }
-        else {
-            if (c.onGround)
-                _a.copy(c.fwd);
-            else
-                forwardOf(c, _a);
-            _a.y = 0;
-            if (_a.lengthSq() > .04) {
-                _a.normalize();
-                camDirX = _a.x;
-                camDirZ = _a.z;
-            }
-            camPosT.set(c.pos.x - camDirX * 13, c.pos.y + 4.8, c.pos.z - camDirZ * 13);
-            camLookT.set(c.pos.x + camDirX * 6, c.pos.y + 1.6, c.pos.z + camDirZ * 6);
-        }
+        camPosT.set(c.pos.x - camDirX * 13, c.pos.y + 4.8, c.pos.z - camDirZ * 13);
+        camLookT.set(c.pos.x + camDirX * 6, c.pos.y + 1.6, c.pos.z + camDirZ * 6);
         for (let k = 0; k < 2; k++) {
             const dc = arenaD(camPosT.x, camPosT.y, camPosT.z);
             if (dc < 2) {
