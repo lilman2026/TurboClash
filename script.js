@@ -2140,8 +2140,10 @@ function resetKickoff() {
     lastCount = 0;
     kickoffT = 0;
     acc = 0;
-    if (!attract)
+    if (!attract) {
         camSnap = true;
+        camFlipBlend = 0;
+    }
 }
 function placeCar(c, x, z) {
     if (!c)
@@ -2485,7 +2487,7 @@ $('quitBtn').onclick = toMenu;
 $('resumeBtn').onclick = togglePause;
 let acc = 0, last = performance.now(), clockTime = 0;
 const camPos = new V3(0, 50, -150), camLook = new V3(), camLookT = new V3(), camPosT = new V3();
-let orbitA = 0, debugCam = null, camDirX = 0, camDirZ = 1, camSnap = true;
+let orbitA = 0, debugCam = null, camDirX = 0, camDirZ = 1, camSnap = true, camFlipBlend = 0;
 const _cn = new V3();
 function update(dt) {
     clockTime += dt;
@@ -2674,14 +2676,25 @@ function render(dt) {
             _a.copy(c.fwd);
         else
             forwardOf(c, _a);
+        const facingUp = _b.set(0, 1, 0).applyQuaternion(c.q).y;
+        const canTrackHeading = c.onGround || (!c.flipping && facingUp > .45 && Math.abs(_a.y) < .65);
         _a.y = 0;
-        if (_a.lengthSq() > .04) {
+        if (canTrackHeading && _a.lengthSq() > .15) {
             _a.normalize();
-            camDirX = _a.x;
-            camDirZ = _a.z;
+            const current = Math.atan2(camDirX, camDirZ);
+            const desired = Math.atan2(_a.x, _a.z);
+            const angle = Math.atan2(Math.sin(desired - current), Math.cos(desired - current));
+            const turn = camSnap ? 1 : 1 - Math.exp(-7 * dt);
+            const heading = current + angle * turn;
+            camDirX = Math.sin(heading);
+            camDirZ = Math.cos(heading);
         }
-        camPosT.set(c.pos.x - camDirX * 13, c.pos.y + 4.8, c.pos.z - camDirZ * 13);
-        camLookT.set(c.pos.x + camDirX * 6, c.pos.y + 1.6, c.pos.z + camDirZ * 6);
+        camFlipBlend += ((c.flipping ? 1 : 0) - camFlipBlend) * (1 - Math.exp(-7 * dt));
+        const distance = 13 + 5 * camFlipBlend;
+        const height = 4.8 + 2 * camFlipBlend;
+        const lookAhead = 6 - 2 * camFlipBlend;
+        camPosT.set(c.pos.x - camDirX * distance, c.pos.y + height, c.pos.z - camDirZ * distance);
+        camLookT.set(c.pos.x + camDirX * lookAhead, c.pos.y + 1.6 + .7 * camFlipBlend, c.pos.z + camDirZ * lookAhead);
         for (let k = 0; k < 2; k++) {
             const dc = arenaD(camPosT.x, camPosT.y, camPosT.z);
             if (dc < 2) {
@@ -2697,7 +2710,7 @@ function render(dt) {
         else {
             camPos.lerp(camPosT, 1 - Math.exp(-11 * dt));
             camLook.lerp(camLookT, 1 - Math.exp(-14 * dt));
-            camera.fov = lerp(camera.fov, c.supersonic ? 86 : c.boosting ? 81 : 76, 1 - Math.exp(-4 * dt));
+            camera.fov = lerp(camera.fov, Math.max(c.supersonic ? 86 : c.boosting ? 81 : 76, 76 + 3 * camFlipBlend), 1 - Math.exp(-4 * dt));
         }
         updateShadow((c.pos.x + camLook.x) / 2, (c.pos.z + camLook.z) / 2, 110);
     }
@@ -2713,7 +2726,7 @@ function render(dt) {
     camera.position.copy(camPos);
     if (shake > 0) {
         shake = Math.max(0, shake - dt);
-        const s = shake * 1.2;
+        const s = shake * (player && player.flipping ? .12 : 1.2);
         camera.position.x += rand(-s, s);
         camera.position.y += rand(-s, s);
         camera.position.z += rand(-s, s);
