@@ -2222,6 +2222,7 @@ function setupMatch(isAttract) {
         }
     player = cars.find(c => c.human) || null;
     recInit();
+    lastGoalReplay = null;
     scoreArr = [0, 0];
     timeLeft = settings.len;
     overtime = false;
@@ -2298,6 +2299,7 @@ function onGoal(team) {
     lastGoalTeam = team;
     const scorer = lastTouch[team];
     replayScorer = scorer ? cars.indexOf(scorer) : -1;
+    saveLastGoalReplay();
     if (scorer)
         scorer.stats.goals++;
     burst(ball.pos, TEAM_COL[team], 460, 60, 1.9);
@@ -2393,7 +2395,7 @@ function toMenu() {
     camSnap = true;
     perfHold(2500);
 }
-let rec = null, lastRecT = -1, replay = null, replayScorer = -1;
+let rec = null, lastRecT = -1, replay = null, replayScorer = -1, lastGoalReplay = null;
 const _rq0 = new Q4(), _rq1 = new Q4();
 function recInit() { const stride = 12 + cars.length * 11, cap = 600; rec = { stride, cap, buf: new Float32Array(stride * cap), head: 0, count: 0 }; lastRecT = -1; }
 function recFrame() {
@@ -2430,17 +2432,37 @@ function recFrame() {
     rec.head = (rec.head + 1) % rec.cap;
     rec.count = Math.min(rec.count + 1, rec.cap);
 }
-function startReplay() {
-    if (!rec || rec.count < 20)
+function saveLastGoalReplay() {
+    if (!rec || rec.count < 20) {
+        lastGoalReplay = null;
+        return;
+    }
+    const n = rec.count, S = rec.stride, cap = rec.cap;
+    const start = (rec.head - n + cap) % cap;
+    const buf = new Float32Array(n * S);
+    for (let i = 0; i < n; i++) {
+        const pos = (start + i) % cap * S;
+        buf.set(rec.buf.subarray(pos, pos + S), i * S);
+    }
+    lastGoalReplay = { stride: S, cap: n, buf, head: 0, count: n };
+}
+function finishMatch() {
+    if (!attract && lastGoalReplay && startReplay(true))
+        return;
+    endMatch();
+}
+function startReplay(final = false) {
+    const source = final ? lastGoalReplay : rec;
+    if (!source || source.count < 20)
         return false;
-    const n = rec.count, cap = rec.cap, st = (rec.head - n + cap) % cap, idx = [], S = rec.stride;
+    const n = source.count, cap = source.cap, st = (source.head - n + cap) % cap, idx = [], S = source.stride;
     for (let i = 0; i < n; i++)
         idx.push((st + i) % cap);
-    const tEnd = rec.buf[idx[n - 1] * S], tStart = Math.max(rec.buf[idx[0] * S], tEnd - 5.2);
+    const tEnd = source.buf[idx[n - 1] * S], tStart = Math.max(source.buf[idx[0] * S], tEnd - 5.2);
     let k = 0;
-    while (k < n - 2 && rec.buf[idx[k + 1] * S] <= tStart)
+    while (k < n - 2 && source.buf[idx[k + 1] * S] <= tStart)
         k++;
-    replay = { idx, tStart, tEnd, t: tStart, k, team: lastGoalTeam, scorer: replayScorer, cut: false, snapped: false, hold: 0 };
+    replay = { source, final, idx, tStart, tEnd, t: tStart, k, team: lastGoalTeam, scorer: replayScorer, cut: false, snapped: false, hold: 0 };
     state = 'replay';
     ball.active = true;
     ball.mesh.visible = true;
@@ -2448,6 +2470,7 @@ function startReplay() {
     shockT = 0;
     const sc = replayScorer >= 0 ? cars[replayScorer] : null;
     $('replayBadge').style.background = lastGoalTeam ? 'linear-gradient(180deg,#ff5050,#c4161c)' : 'linear-gradient(180deg,#4b97ff,#1c5fd6)';
+    $('replayBadge').innerHTML = '<i></i>' + (final ? 'FINAL REPLAY' : 'REPLAY');
     $('replayWho').textContent = sc ? `${sc.name} SCORES` : `${TEAM_NAME[lastGoalTeam]} SCORES`;
     $('hud').classList.add('replaying');
     $('center').classList.remove('show');
@@ -2457,7 +2480,7 @@ function startReplay() {
     return true;
 }
 function replayApply() {
-    const r = replay, b = rec.buf, S = rec.stride, idx = r.idx;
+    const r = replay, b = r.source.buf, S = r.source.stride, idx = r.idx;
     while (r.k < idx.length - 2 && b[idx[r.k + 1] * S] <= r.t)
         r.k++;
     const i0 = idx[r.k] * S, i1 = idx[Math.min(r.k + 1, idx.length - 1)] * S;
@@ -2510,8 +2533,13 @@ function stepReplay(dt) {
     replayApply();
 }
 function afterGoal() {
+    const final = replay && replay.final;
     replay = null;
     $('hud').classList.remove('replaying');
+    if (final) {
+        endMatch();
+        return;
+    }
     if (!attract && matchOverAfterGoal) {
         if (scoreArr[0] === scoreArr[1]) {
             overtime = true;
@@ -2618,7 +2646,7 @@ function update(dt) {
                             resetKickoff();
                         }
                         else
-                            endMatch();
+                            finishMatch();
                     }
                 }
             }
@@ -2628,8 +2656,11 @@ function update(dt) {
     }
     else if (state === 'goal') {
         goalT -= dt;
-        if (goalT <= 0 && (attract || !startReplay()))
-            afterGoal();
+        if (goalT <= 0) {
+            const final = !attract && matchOverAfterGoal && scoreArr[0] !== scoreArr[1];
+            if (attract || !startReplay(final))
+                afterGoal();
+        }
     }
     else if (state === 'replay')
         stepReplay(dt);
