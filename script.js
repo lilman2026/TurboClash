@@ -424,131 +424,46 @@ const SHIRTS = [['#1f5fd6', '#2a6ff0', '#173f8f', '#3d86ff', '#0f2f6e', '#5a9bff
 const NEUTRAL = ['#f2f2f2', '#1c1c1c', '#6b6f78', '#e8e2d0', '#33363d', '#9aa0a8', '#2d4a35'];
 function drawCrowdStrip(seed, side, cheer) {
     const N = 32, PW = 128, W = N * PW, H = 192, c = mkCanvas(W, H), g = c.getContext('2d');
-    const R = mulberry32(seed), pick = a => a[Math.floor(R() * a.length)];
-    const seat = side ? '#5e1217' : '#132a63';
+    const R = mulberry32(seed);
+    const shirt = side ? '#ed424d' : '#3988ff';
+    const sleeve = side ? '#cb2935' : '#2466d5';
+    const pants = '#202e47', shoes = '#f3f5fc';
     for (let i = 0; i < N; i++) {
-        const cx = i * PW + PW / 2 + (R() - .5) * 14;
-        const shirt = R() < .74 ? pick(SHIRTS[side]) : pick(NEUTRAL);
-        const skin = pick(SKIN), hair = pick(HAIR), cap = pick(SHIRTS[side]);
-        const hs = R(), sw = 64 + R() * 18, sy = 100 + R() * 10, armR = R(), armV = R(), scarf = R(), hx = cx + (R() - .5) * 5;
-        const hy = sy - 30, armsUp = cheer && armR < .82;
-        g.fillStyle = seat;
+        const cx = i * PW + PW / 2 + (R() - .5) * 11;
+        const skin = R() < .5 ? '#e2ad82' : '#9d6042';
+        const cheering = cheer && R() < .85;
+        const armAngle = (R() - .5) * .18;
+        g.fillStyle = pants;
+        g.fillRect(cx - 28, 119, 23, 62);
+        g.fillRect(cx + 5, 119, 23, 62);
+        g.fillStyle = shoes;
+        g.fillRect(cx - 32, 176, 29, 13);
+        g.fillRect(cx + 3, 176, 29, 13);
+        for (const sign of [-1, 1]) {
+            g.save();
+            g.translate(cx + sign * 44, 85);
+            g.rotate(sign * (cheering ? 2.65 + armAngle : .1 + armAngle));
+            g.fillStyle = sleeve;
+            g.fillRect(-10, 0, 20, 43);
+            g.fillStyle = skin;
+            g.fillRect(-8, 40, 16, 22);
+            g.beginPath();
+            g.arc(0, 63, 9, 0, Math.PI * 2);
+            g.fill();
+            g.restore();
+        }
+        g.fillStyle = shirt;
+        g.fillRect(cx - 40, 80, 80, 54);
+        g.fillStyle = skin;
+        g.fillRect(cx - 10, 68, 20, 16);
         g.beginPath();
-        g.roundRect(cx - 50, sy - 6, 100, H - sy + 6, 10);
+        g.arc(cx, 49, 29, 0, Math.PI * 2);
         g.fill();
-        if (hs > .72 && hs < .84) {
-            g.fillStyle = hair;
-            g.beginPath();
-            g.ellipse(hx, hy - 4, 25, 25, 0, 0, Math.PI * 2);
-            g.fill();
-        }
-        if (!armsUp)
-            for (const s of [-1, 1]) {
-                g.fillStyle = shade(shirt, -.25);
-                g.beginPath();
-                g.roundRect(cx + s * (sw / 2 - 3) - 8, sy + 8, 16, 58, 8);
-                g.fill();
-                g.fillStyle = skin;
-                g.beginPath();
-                g.arc(cx + s * (sw / 2 - 5), sy + 68, 7.5, 0, 6.283);
-                g.fill();
-            }
-        const tg = g.createLinearGradient(cx - sw / 2, 0, cx + sw / 2, 0);
-        tg.addColorStop(0, shade(shirt, -.38));
-        tg.addColorStop(.38, shirt);
-        tg.addColorStop(.65, shade(shirt, .06));
-        tg.addColorStop(1, shade(shirt, -.42));
-        g.fillStyle = tg;
+        g.fillStyle = 'rgba(30,25,23,.78)';
         g.beginPath();
-        g.roundRect(cx - sw / 2, sy, sw, H - sy + 14, [20, 20, 0, 0]);
+        g.arc(cx - 10, 49, 2.5, 0, Math.PI * 2);
+        g.arc(cx + 10, 49, 2.5, 0, Math.PI * 2);
         g.fill();
-        if (scarf < .22) {
-            g.fillStyle = side ? '#e3202b' : '#1f6bff';
-            g.fillRect(cx - sw / 2 + 8, sy + 1, sw - 16, 10);
-            g.fillStyle = '#fff';
-            for (let k = -2; k <= 2; k++)
-                g.fillRect(cx + k * 10 - 2, sy + 1, 4, 10);
-        }
-        if (armsUp)
-            for (const s of [-1, 1]) {
-                g.save();
-                g.translate(cx + s * (sw / 2 - 7), sy + 10);
-                g.rotate(-s * (Math.PI - .32 - armV * .35));
-                g.fillStyle = shade(shirt, -.1);
-                g.beginPath();
-                g.roundRect(-8, 0, 16, 32, 7);
-                g.fill();
-                g.fillStyle = skin;
-                g.beginPath();
-                g.roundRect(-6.5, 27, 13, 30, 6);
-                g.fill();
-                g.beginPath();
-                g.arc(0, 58, 8, 0, 6.283);
-                g.fill();
-                g.restore();
-            }
-        g.fillStyle = shade(skin, -.18);
-        g.fillRect(hx - 8, sy - 14, 16, 18);
-        g.beginPath();
-        g.ellipse(hx - 17, hy + 2, 3.5, 6, 0, 0, 6.283);
-        g.ellipse(hx + 17, hy + 2, 3.5, 6, 0, 0, 6.283);
-        g.fill();
-        const hg = g.createRadialGradient(hx - 6, hy - 9, 2, hx, hy, 26);
-        hg.addColorStop(0, shade(skin, .14));
-        hg.addColorStop(1, shade(skin, -.32));
-        g.fillStyle = hg;
-        g.beginPath();
-        g.ellipse(hx, hy, 17, 21, 0, 0, 6.283);
-        g.fill();
-        if (hs < .34) {
-            g.fillStyle = hair;
-            g.beginPath();
-            g.ellipse(hx, hy - 8, 18.5, 15, 0, Math.PI, 0);
-            g.fill();
-        }
-        else if (hs < .54) {
-            g.fillStyle = hair;
-            g.beginPath();
-            g.ellipse(hx, hy - 7, 20, 17, 0, Math.PI, 0);
-            g.fill();
-            g.fillRect(hx - 20, hy - 7, 7, 32);
-            g.fillRect(hx + 13, hy - 7, 7, 32);
-        }
-        else if (hs < .72) {
-            g.fillStyle = cap;
-            g.beginPath();
-            g.ellipse(hx, hy - 9, 19, 14, 0, Math.PI, 0);
-            g.fill();
-            g.fillStyle = shade(cap, -.3);
-            g.fillRect(hx - 21, hy - 10, 42, 5);
-        }
-        else if (hs >= .84) {
-            g.fillStyle = hair;
-            g.globalAlpha = .55;
-            g.beginPath();
-            g.ellipse(hx, hy - 10, 17, 11, 0, Math.PI, 0);
-            g.fill();
-            g.globalAlpha = 1;
-        }
-        g.fillStyle = 'rgba(25,15,10,.62)';
-        g.beginPath();
-        g.ellipse(hx - 6.5, hy - 1, 2.4, 1.9, 0, 0, 6.283);
-        g.ellipse(hx + 6.5, hy - 1, 2.4, 1.9, 0, 0, 6.283);
-        g.fill();
-        if (cheer) {
-            g.fillStyle = 'rgba(70,18,18,.85)';
-            g.beginPath();
-            g.ellipse(hx, hy + 10, 4.5, 5, 0, 0, 6.283);
-            g.fill();
-        }
-        else {
-            g.strokeStyle = 'rgba(90,40,30,.55)';
-            g.lineWidth = 1.8;
-            g.beginPath();
-            g.moveTo(hx - 4.5, hy + 10);
-            g.lineTo(hx + 4.5, hy + 10);
-            g.stroke();
-        }
     }
     const t = mkTex(c);
     t.wrapS = THREE.RepeatWrapping;
@@ -903,9 +818,8 @@ function buildStadium() {
 }
 function personGeo(hi) {
     const pieces = [];
-    const add = (geo, part, arm, x, y, z, sx = 1, sy = 1, sz = 1) => {
+    const add = (geo, part, arm, x, y, z) => {
         const gg = geo.index ? geo.toNonIndexed() : geo;
-        gg.scale(sx, sy, sz);
         gg.translate(x, y, z);
         gg.deleteAttribute('uv');
         const n = gg.attributes.position.count;
@@ -913,37 +827,26 @@ function personGeo(hi) {
         gg.setAttribute('aArm', new THREE.Float32BufferAttribute(new Float32Array(n).fill(arm), 1));
         pieces.push(gg);
     };
-    add(new THREE.BoxGeometry(.42, .45, .16), 3, 0, 0, -.225, .44);
-    add(new THREE.BoxGeometry(.48, .18, .52), 3, 0, 0, .09, .2);
-    if (hi) {
-        add(new THREE.CylinderGeometry(.27, .22, .64, 7), 0, 0, 0, .5, 0, 1, 1, .62);
-        add(new THREE.SphereGeometry(.15, 7, 5), 1, 0, 0, 1.0, .03, 1, 1.12, 1);
-        add(new THREE.SphereGeometry(.162, 7, 3, 0, Math.PI * 2, 0, Math.PI * .55), 2, 0, 0, 1.03, -.03);
-        for (const s of [-1, 1]) {
-            add(new THREE.CylinderGeometry(.068, .058, .56, 5, 1, true), 0, s, s * .33, .5, .03);
-            add(new THREE.BoxGeometry(.1, .11, .11), 1, s, s * .33, .17, .05);
-        }
-    }
-    else {
-        add(new THREE.BoxGeometry(.52, .64, .28), 0, 0, 0, .5, 0);
-        add(new THREE.IcosahedronGeometry(.15, 0), 1, 0, 0, 1.0, .03, 1, 1.12, 1);
-        add(new THREE.IcosahedronGeometry(.16, 0), 2, 0, 0, 1.05, -.03, 1, .9, 1);
-        for (const s of [-1, 1]) {
-            add(new THREE.BoxGeometry(.12, .56, .14), 0, s, s * .33, .5, .03);
-            add(new THREE.BoxGeometry(.1, .11, .11), 1, s, s * .33, .17, .05);
-        }
+    add(new THREE.BoxGeometry(.86, .90, .46), 0, 0, 0, 1.38, 0);
+    add(new THREE.BoxGeometry(.20, .17, .20), 1, 0, 0, 1.86, 0);
+    add(new THREE.IcosahedronGeometry(.33, hi ? 1 : 0), 1, 0, 0, 2.17, 0);
+    for (const side of [-1, 1]) {
+        add(new THREE.BoxGeometry(.29, .70, .34), 0, side, side * .61, 1.36, 0);
+        add(new THREE.BoxGeometry(.24, .19, .28), 1, side, side * .61, .91, 0);
+        add(new THREE.BoxGeometry(.31, .82, .39), 3, 0, side * .225, .51, 0);
+        add(new THREE.BoxGeometry(.42, .17, .61), 2, 0, side * .225, .09, .11);
     }
     let total = 0;
-    for (const p of pieces)
-        total += p.attributes.position.count;
+    for (const piece of pieces)
+        total += piece.attributes.position.count;
     const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3), part = new Float32Array(total), arm = new Float32Array(total);
-    let o = 0;
-    for (const p of pieces) {
-        pos.set(p.attributes.position.array, o * 3);
-        nor.set(p.attributes.normal.array, o * 3);
-        part.set(p.attributes.aPart.array, o);
-        arm.set(p.attributes.aArm.array, o);
-        o += p.attributes.position.count;
+    let offset = 0;
+    for (const piece of pieces) {
+        pos.set(piece.attributes.position.array, offset * 3);
+        nor.set(piece.attributes.normal.array, offset * 3);
+        part.set(piece.attributes.aPart.array, offset);
+        arm.set(piece.attributes.aArm.array, offset);
+        offset += piece.attributes.position.count;
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -955,19 +858,15 @@ function personGeo(hi) {
 let crowdCount = 0;
 const crowdLOD = [];
 function buildCrowd3D() {
-    const base = personGeo(false), baseHi = personGeo(true), NSEC = 24, secs = Array.from({ length: NSEC }, () => []), empty = [];
-    const S = 1.25, SP = 1.3, R = mulberry32(1234);
+    const base = personGeo(false), baseHi = personGeo(true), NSEC = 24, secs = Array.from({ length: NSEC }, () => []);
+    const S = 1.0, SP = 1.3, R = mulberry32(1234);
     for (let r = 0; r < LR; r++) {
         const o = r * D1 + .95, h = H1 + r * R1, L = rrLen(o), n = Math.floor(L / SP), j = R() * SP;
         for (let k = 0; k < n; k++) {
             const s = k * SP + j + (R() - .5) * .18, p = rrAt(o, s, {});
             const yaw = Math.atan2(-p.nx, -p.nz) + (R() - .5) * .3, side = p.z < 0 ? 0 : 1;
-            if (R() < .085) {
-                empty.push({ x: p.x, y: h, z: p.z, yaw, side });
-                continue;
-            }
             const sec = Math.min(NSEC - 1, Math.floor((((s % L) + L) % L) / L * NSEC));
-            secs[sec].push({ x: p.x, y: h + .45 * S, z: p.z, yaw, sc: S * (.92 + R() * .16), side, r1: R(), r2: R(), r3: R(), r4: R(), r5: R(), ph: R() * 6.283 });
+            secs[sec].push({ x: p.x, y: h, z: p.z, yaw, sc: S * (.92 + R() * .16), side, r1: R(), r2: R(), r3: R(), r4: R(), r5: R(), ph: R() * 6.283 });
         }
     }
     const mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
@@ -980,7 +879,7 @@ function buildCrowd3D() {
         vec3 transformed = vec3(position);
         float ex = clamp((aTeam < 0.5 ? uExciteB : uExciteR) * (0.55 + 0.45 * sin(aPhase * 3.7)), 0.0, 1.0);
         if (aArm != 0.0) {
-          vec2 piv = vec2(aArm * 0.33, 0.78);
+          vec2 piv = vec2(aArm * 0.61, 1.70);
           float th = aArm * ex * (2.3 + 0.5 * sin(aPhase * 5.3)) + aArm * ex * 0.25 * sin(uTime * 9.0 + aPhase);
           vec2 p = transformed.xy - piv; float cs = cos(th), sn = sin(th);
           transformed.xy = piv + vec2(p.x * cs - p.y * sn, p.x * sn + p.y * cs);
@@ -1003,11 +902,11 @@ function buildCrowd3D() {
         }
         const shirt = new Float32Array(n * 3), skin = new Float32Array(n * 3), hair = new Float32Array(n * 3), pants = new Float32Array(n * 3), phase = new Float32Array(n), team = new Float32Array(n);
         list.forEach((pp, i) => {
-            const t = pp.side, sk = SKIN[Math.floor(pp.r3 * SKIN.length)];
-            col.set(pp.r1 < .74 ? SHIRTS[t][Math.floor(pp.r2 * SHIRTS[t].length)] : NEUTRAL[Math.floor(pp.r2 * NEUTRAL.length)]).toArray(shirt, i * 3);
+            const t = pp.side, sk = pp.r3 < .5 ? '#e2ad82' : '#9d6042';
+            col.set(t ? '#ed424d' : '#3988ff').toArray(shirt, i * 3);
             col.set(sk).toArray(skin, i * 3);
-            col.set(pp.r4 < .12 ? sk : pp.r4 < .3 ? SHIRTS[t][Math.floor(pp.r5 * 3)] : HAIR[Math.floor(pp.r5 * HAIR.length)]).toArray(hair, i * 3);
-            col.set(PANTS[Math.floor(pp.r5 * 97) % PANTS.length]).toArray(pants, i * 3);
+            col.set('#f3f5fc').toArray(hair, i * 3);
+            col.set('#202e47').toArray(pants, i * 3);
             phase[i] = pp.ph;
             team[i] = pp.side;
         });
@@ -1031,23 +930,6 @@ function buildCrowd3D() {
         crowdLOD.push({ lo: mesh, hi: meshHi, c: mesh.boundingSphere.center.clone(), r: mesh.boundingSphere.radius });
         crowdCount += n;
     }
-    const seatG = new THREE.BoxGeometry(.5, .08, .46).toNonIndexed(), backG = new THREE.BoxGeometry(.5, .55, .07).toNonIndexed();
-    seatG.translate(0, .45, 0);
-    backG.translate(0, .72, -.22);
-    const sp = new Float32Array(seatG.attributes.position.count * 3 + backG.attributes.position.count * 3);
-    sp.set(seatG.attributes.position.array);
-    sp.set(backG.attributes.position.array, seatG.attributes.position.array.length);
-    const sn = new Float32Array(sp.length);
-    sn.set(seatG.attributes.normal.array);
-    sn.set(backG.attributes.normal.array, seatG.attributes.normal.array.length);
-    const sg = new THREE.BufferGeometry();
-    sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
-    sg.setAttribute('normal', new THREE.BufferAttribute(sn, 3));
-    const em = new THREE.InstancedMesh(sg, new THREE.MeshLambertMaterial({ color: 0xffffff }), empty.length);
-    empty.forEach((e, i) => { q.setFromAxisAngle(UP, e.yaw); em.setMatrixAt(i, m4.compose(ps.set(e.x, e.y, e.z), q, sc.setScalar(1.25))); em.setColorAt(i, col.set(e.side ? '#c0182a' : '#2157c9')); });
-    em.instanceMatrix.needsUpdate = true;
-    em.computeBoundingSphere();
-    scene.add(em);
 }
 function buildCrowdCards() {
     const TILE = 32 * 1.3, R = mulberry32(99);
