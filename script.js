@@ -1029,6 +1029,7 @@ function drawJumbo() {
         g.fillText(scoreArr[0], 36 + bw / 2, 212);
         g.fillText(scoreArr[1], W - 36 - bw / 2, 212);
         g.font = 'italic 900 62px Segoe UI, Arial';
+        g.fillStyle = !attract && !overtime && timeLeft <= 60 ? '#ff4545' : '#fff';
         g.fillText(attract ? 'LIVE' : clock, W / 2, 185);
         drawTurboClash(g, W / 2 - 150, H - 52, 40);
         drawPlayvora(g, W / 2 + 160, H - 52, 40);
@@ -1557,7 +1558,7 @@ function collideSeg(p, v, a, b, rad) {
     return 0;
 }
 const postA = new V3(), postB = new V3(), _bn = new V3(), _sbn = new V3();
-let lastOoh = -9;
+let lastOoh = -9, ballStuckFor = 0;
 function stepBall(dt) {
     const p = ball.pos, v = ball.vel;
     v.y -= G * dt;
@@ -1576,7 +1577,7 @@ function stepBall(dt) {
             if (-vn * .6 < 1.2)
                 v.addScaledVector(_bn, -v.dot(_bn));
         }
-        const f = 1 - Math.exp(-.35 * dt), vn2 = v.dot(_bn);
+        const f = 1 - Math.exp(-.12 * dt), vn2 = v.dot(_bn);
         v.x -= (v.x - _bn.x * vn2) * f;
         v.y -= (v.y - _bn.y * vn2) * f;
         v.z -= (v.z - _bn.z * vn2) * f;
@@ -1596,6 +1597,18 @@ function stepBall(dt) {
             lastOoh = simTime;
             sfx.swell(.5);
         }
+    }
+    arenaN(p, _sbn);
+    if (d < BR + .65 && _sbn.y < .8 && p.y < BR + .9 && Math.hypot(v.x, v.z) < 1.3) {
+        ballStuckFor += dt;
+        if (ballStuckFor > 1.1) {
+            p.addScaledVector(_sbn, .25);
+            v.x += _sbn.x * 5;
+            v.z += _sbn.z * 5;
+            ballStuckFor = 0;
+        }
+    } else {
+        ballStuckFor = 0;
     }
     const sp = v.length();
     if (sp > BALL_MAX)
@@ -1674,7 +1687,7 @@ function carBall(c) {
             const ad = c.team === 0 ? 1 : -1, before = goalBound(ball.pos, _bvPrev), after = goalBound(ball.pos, ball.vel);
             if (before === -ad && after !== -ad) {
                 c.stats.saves++;
-                feed(`<span style="color:${TEAM_CSS[c.team]}">🧤 ${c.name}</span> saved`);
+                feed(`<span style="color:${TEAM_CSS[c.team]}">${c.name}</span> saved`);
                 if (c.human)
                     showCenter('SAVE!', 1.1, TEAM_CSS[c.team]);
                 sfx.swell(.7);
@@ -2103,7 +2116,7 @@ function setupMatch(isAttract) {
     timeLeft = settings.len;
     overtime = false;
     otTime = 0;
-    $('clock').classList.remove('ot');
+    $('clock').classList.remove('ot', 'last-minute');
     updateScoreHud();
     resetKickoff();
 }
@@ -2112,6 +2125,7 @@ function resetKickoff() {
     ball.pos.set(0, BR, 0);
     ball.vel.set(0, 0, 0);
     ball.spin.set(0, 0, 0);
+    ballStuckFor = 0;
     ball.active = true;
     ball.mesh.visible = true;
     const spots = [...SPOTS].sort(() => Math.random() - .5);
@@ -2205,7 +2219,7 @@ function onGoal(team) {
         const own = !scorer && lastToucher;
         showCenter('GOAL!', 2.4, TEAM_CSS[team]);
         showSub(scorer ? `${scorer.name} SCORED${scorer.human ? '!' : ''}` : own ? `OWN GOAL BY ${lastToucher.name}` : `${TEAM_NAME[team]} SCORES`, 2.4);
-        feed(`<span style="color:${TEAM_CSS[team]}">⚽ ${scorer ? scorer.name : TEAM_NAME[team]}</span> scored`);
+        feed(`<span style="color:${TEAM_CSS[team]}">${scorer ? scorer.name : TEAM_NAME[team]}</span> scored`);
     }
 }
 function endMatch() {
@@ -2512,19 +2526,16 @@ function update(dt) {
         kickoffT += dt;
         if (!attract) {
             if (!overtime) {
-                timeLeft -= dt;
-                if (timeLeft <= 0) {
-                    timeLeft = 0;
-                    if (ball.pos.y <= BR + .4) {
-                        if (scoreArr[0] === scoreArr[1]) {
-                            overtime = true;
-                            otTime = 0;
-                            $('clock').classList.add('ot');
-                            showCenter('OVERTIME', 2, '#ffd54a');
-                            resetKickoff();
-                        }
-                        else
-                            finishMatch();
+                timeLeft = Math.max(0, timeLeft - dt);
+                if (timeLeft === 0) {
+                    if (scoreArr[0] === scoreArr[1]) {
+                        overtime = true;
+                        otTime = 0;
+                        $('clock').classList.add('ot');
+                        $('clock').classList.remove('last-minute');
+                        showCenter('OVERTIME', 2, '#ffd54a');
+                    } else if (ball.pos.y <= BR + .4) {
+                        finishMatch();
                     }
                 }
             }
@@ -2624,8 +2635,6 @@ function render(dt) {
                 }
             }
         }
-        if (sp > 65)
-            spawnP(ball.pos.x + rand(-1, 1), ball.pos.y + rand(-1, 1), ball.pos.z + rand(-1, 1), ball.vel.x * .6, ball.vel.y * .6, ball.vel.z * .6, .9, .9, .85, .25);
     }
     blob.visible = ball.active;
     blob.position.set(ball.pos.x, .05, ball.pos.z);
@@ -2734,6 +2743,7 @@ function render(dt) {
     camera.lookAt(camLook);
     if (!attract && player) {
         $('clock').textContent = overtime ? '+' + fmt(otTime) : fmt(timeLeft);
+        $('clock').classList.toggle('last-minute', !overtime && timeLeft <= 60);
         drawBoost(player.boost, player.boostIdle, player.boosting);
         const on = state !== 'ended' && !paused;
         sfx.engine(player.vel.length(), player.boosting, on && state !== 'replay');
