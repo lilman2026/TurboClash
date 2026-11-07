@@ -2354,7 +2354,7 @@ function startReplay(final = false) {
     let k = 0;
     while (k < n - 2 && source.buf[idx[k + 1] * S] <= tStart)
         k++;
-    replay = { source, final, idx, tStart, tEnd, t: tStart, k, team: lastGoalTeam, scorer: replayScorer, cut: false, snapped: false, hold: 0 };
+    replay = { source, final, idx, tStart, tEnd, t: tStart, k, team: lastGoalTeam, scorer: replayScorer, cut: false, snapped: false, hold: 0, goalSlow: false, slowBlend: 0 };
     state = 'replay';
     ball.active = true;
     ball.mesh.visible = true;
@@ -2405,7 +2405,11 @@ function stepReplay(dt) {
             afterGoal();
         return;
     }
-    r.t += dt * (r.tEnd - r.t < 1.2 ? .5 : 1);
+    const targetGoalZ = r.team === 0 ? HL : -HL;
+    if (Math.abs(ball.pos.z - targetGoalZ) < 65 && Math.abs(ball.pos.x) < GW / 2 + 22)
+        r.goalSlow = true;
+    r.slowBlend = lerp(r.slowBlend, r.goalSlow ? 1 : 0, Math.min(1, dt * 6));
+    r.t += dt * (1 - .65 * r.slowBlend);
     if (r.t >= r.tEnd) {
         r.t = r.tEnd;
         replayApply();
