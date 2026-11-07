@@ -28,12 +28,11 @@ canvas#gl{display:block;position:fixed;inset:0;width:100%;height:100%}
 @keyframes fin{from{transform:translateX(30px);opacity:0}}
 #replayTag{position:absolute;top:86px;left:50%;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
 #hud.replaying #replayTag{display:flex}
-#hud.replaying #boostWrap,#hud.replaying #camTag{display:none}
+#hud.replaying #boostWrap{display:none}
 #replayBadge{font-weight:900;font-style:italic;font-size:30px;letter-spacing:6px;padding:6px 26px;border-radius:4px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(0,0,0,.45)}
 #replayBadge i{width:12px;height:12px;border-radius:50%;background:#fff;animation:blink 1s steps(2,start) infinite}
 @keyframes blink{to{visibility:hidden}}
 #replayWho{font-weight:800;font-size:16px;letter-spacing:2px;text-shadow:0 2px 8px #000}
-#camTag{position:absolute;left:18px;top:18px;font-weight:800;font-size:13px;letter-spacing:2px;color:#cfe3ff;background:#0a0f1dbb;padding:5px 12px;border-radius:4px}
 
 .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(5,8,20,.25),rgba(5,8,20,.8))}
 .panel{background:linear-gradient(160deg,#121a33f2,#0a0f1ef2);border:1px solid #ffffff1c;border-radius:14px;padding:34px 44px;min-width:520px;max-width:92vw;box-shadow:0 30px 80px rgba(0,0,0,.6);text-align:center}
